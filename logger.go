@@ -97,17 +97,17 @@ func Get(name string) *Logger4go {
 // GetWithFlags returns a logger with the specified name and log header flags.
 // If it does exist a new instance will be created.
 func GetWithFlags(name string, flags int) *Logger4go {
-	// maybe split into rw locks instead but this should not be a perf issue
-	mu.Lock()
-	defer mu.Unlock()
+	mu.RLock()
 	lg, ok := loggers4go[name]
+	mu.RUnlock()
 	if !ok {
 		// create with a noop writer/handler
 		lg = newLogger(&NoopHandler{}, name, name+" ", flags)
 		lg.filter = ALL
+		mu.Lock()
+		defer mu.Unlock()
 		loggers4go[name] = lg
 	}
-
 	return lg
 }
 
@@ -273,7 +273,7 @@ func (l *Logger4go) SetOutput(out io.Writer) {
 //
 // Private
 //
-var mu = &sync.Mutex{}
+var mu = &sync.RWMutex{}
 
 var loggers4go = make(map[string]*Logger4go)
 

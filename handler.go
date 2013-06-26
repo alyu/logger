@@ -121,8 +121,8 @@ func (fh *FileHandler) Write(b []byte) (n int, err error) {
 		return n, errors.New("Unable to write all bytes to " + fh.filePath)
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
+	fh.mutex.Lock()
+	defer fh.mutex.Unlock()
 
 	fh.written += uint(n)
 	if fh.rotate > 0 && fh.size > 0 && fh.written >= fh.size {
@@ -246,9 +246,6 @@ func newSyslogHandler(protocol, ipaddr string, priority syslog.Priority, tag str
 }
 
 func (fh *FileHandler) rotateLog() (f *os.File, err error) {
-	fh.mutex.Lock()
-	defer fh.mutex.Unlock()
-
 	if fh.out != nil {
 		fh.out.Close()
 	}
