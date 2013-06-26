@@ -1,29 +1,6 @@
-/*
-Copyright (c) 2013, Alex Yu <alex@alexyu.se>
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-    * Neither the name of the <organization> nor the
-      names of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// Copyright (c) 2013 - Alex Yu <alex@alexyu.se>. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can
+// be found in the LICENSE file.
 
 package logger
 
@@ -144,6 +121,9 @@ func (fh *FileHandler) Write(b []byte) (n int, err error) {
 		return n, errors.New("Unable to write all bytes to " + fh.filePath)
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	fh.written += uint(n)
 	if fh.rotate > 0 && fh.size > 0 && fh.written >= fh.size {
 		f, err := fh.rotateLog()
@@ -168,6 +148,9 @@ func (fh *FileHandler) Rotate() byte {
 }
 
 func (fh *FileHandler) SetRotate(rotate byte) {
+	fh.mutex.Lock()
+	defer fh.mutex.Unlock()
+
 	fh.rotate = rotate
 }
 
@@ -176,6 +159,9 @@ func (fh *FileHandler) Size() uint {
 }
 
 func (fh *FileHandler) SetSize(size uint) {
+	fh.mutex.Lock()
+	defer fh.mutex.Unlock()
+
 	fh.size = size
 }
 
@@ -184,6 +170,9 @@ func (fh *FileHandler) Compress() bool {
 }
 
 func (fh *FileHandler) SetCompress(compress bool) {
+	fh.mutex.Lock()
+	defer fh.mutex.Unlock()
+
 	fh.compress = compress
 }
 
@@ -192,6 +181,9 @@ func (fh *FileHandler) Seq() byte {
 }
 
 func (fh *FileHandler) SetSeq(seq byte) {
+	fh.mutex.Lock()
+	defer fh.mutex.Unlock()
+
 	fh.seq = seq
 }
 
@@ -200,6 +192,9 @@ func (fh *FileHandler) Daily() bool {
 }
 
 func (fh *FileHandler) SetDaily(daily bool) {
+	fh.mutex.Lock()
+	defer fh.mutex.Unlock()
+
 	if !fh.daily && daily {
 		go fh.rotateDaily()
 	}
@@ -213,7 +208,6 @@ func (fh *FileHandler) String() string {
 //
 // Private
 //
-
 const (
 	def_rotate = 5
 	def_size   = 1 * MB

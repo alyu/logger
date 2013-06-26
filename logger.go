@@ -1,29 +1,6 @@
-/*
-Copyright (c) 2013, Alex Yu <alex@alexyu.se>
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-    * Neither the name of the <organization> nor the
-      names of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// Copyright (c) 2013 - Alex Yu <alex@alexyu.se>. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can
+// be found in the LICENSE file.
 
 // Package logger provides Logger4go which is a simple wrapper around go's log.Logger.
 //
@@ -33,9 +10,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Supports:
 //
-// 	- Write to multiple handlers, e.g., log to console, file and syslog at the same time.
-// 	- Use more than one logger instance. Each with its own set of handlers.
-// 	- Log file rotation (size of daily) and compression.
+//  - Write to multiple handlers, e.g., log to console, file and syslog at the same time.
+//  - Use more than one logger instance. Each with its own set of handlers.
+//  - Log file rotation (size of daily) and compression.
 //  - Filter out severity levels.
 //
 // Example output:
@@ -64,6 +41,7 @@ import (
 	"io"
 	"log"
 	"log/syslog"
+	"sync"
 )
 
 // Logger4go embedds go's log.Logger as an anonymous field and
@@ -72,6 +50,7 @@ type Logger4go struct {
 	name     string
 	handlers []Handler
 	filter   Filter
+	mutex    sync.Mutex
 	*log.Logger
 }
 
@@ -118,6 +97,9 @@ func Get(name string) *Logger4go {
 // GetWithFlags returns a logger with the specified name and log header flags.
 // If it does exist a new instance will be created.
 func GetWithFlags(name string, flags int) *Logger4go {
+	// maybe split into rw locks instead but this should not be a perf issue
+	mu.Lock()
+	defer mu.Unlock()
 	lg, ok := loggers4go[name]
 	if !ok {
 		// create with a noop writer/handler
@@ -255,6 +237,9 @@ func (l *Logger4go) IsFilterSet(f Filter) bool {
 }
 
 func (l *Logger4go) SetFilter(fFlags Filter) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
 	l.filter = fFlags
 }
 
@@ -279,6 +264,8 @@ func (l *Logger4go) SetPrefix(prefix string) {
 }
 
 func (l *Logger4go) SetOutput(out io.Writer) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
 	l.Logger = log.New(out, l.Logger.Prefix(), l.Logger.Flags())
 }
@@ -286,6 +273,8 @@ func (l *Logger4go) SetOutput(out io.Writer) {
 //
 // Private
 //
+var mu = &sync.Mutex{}
+
 var loggers4go = make(map[string]*Logger4go)
 
 var severity = []string{"-emerg-", "-alert-", "-crit-", "-err-", "-warn-", "-notice-", "-info-", "-debug-", ""}
@@ -326,6 +315,9 @@ func newLogger(out io.Writer, name string, prefix string, flags int) *Logger4go 
 }
 
 func saveHandler(l *Logger4go, handler Handler) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
 	l.handlers = append(l.handlers, handler)
 	out := make([]io.Writer, 0)
 	for _, h := range l.handlers {
