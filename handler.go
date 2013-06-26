@@ -65,14 +65,9 @@ type SyslogHandler struct {
 	Out *syslog.Writer
 }
 
-func (nh *NoopHandler) Write(b []byte) (n int, err error) {
-	return 0, nil
-}
-
-func (nh *NoopHandler) Close() error   { return nil }
-func (nh *NoopHandler) Enable(bool)    {}
-func (nh *NoopHandler) Enabled() bool  { return true }
-func (nh *NoopHandler) String() string { return "NoopHandler" }
+func (nh *NoopHandler) Write(b []byte) (n int, err error) { return 0, nil }
+func (nh *NoopHandler) Close() error                      { return nil }
+func (nh *NoopHandler) String() string                    { return "NoopHandler" }
 
 func (ch *ConsoleHandler) Write(b []byte) (n int, err error) {
 	n, err = os.Stdout.Write(b)
@@ -125,7 +120,7 @@ func (fh *FileHandler) Write(b []byte) (n int, err error) {
 	defer fh.mutex.Unlock()
 
 	fh.written += uint(n)
-	if fh.rotate > 0 && fh.size > 0 && fh.written >= fh.size {
+	if !fh.daily && fh.rotate > 0 && fh.size > 0 && fh.written >= fh.size {
 		f, err := fh.rotateLog()
 		if err != nil {
 			return n, err
