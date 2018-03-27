@@ -29,8 +29,8 @@
 // 	main 2013/06/21 08:22:14 -warn- A warning message
 // 	main 2013/06/21 08:22:14 -err- An error message
 // 	main 2013/06/21 08:22:14 -crit- A critical message
-// 	main 2013/06/21 08:22:14 -alert- An alert message
-// 	main 2013/06/21 08:22:14 -emerg- An emergency message
+// 	main 2013/06/21 08:22:14 -Alert- An alert message
+// 	main 2013/06/21 08:22:14 -Emerge- An Emergeency message
 //
 // TODO:
 // 	- Custom header format
@@ -38,10 +38,12 @@
 package logger
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"log/syslog"
 	"sync"
+	"strconv"
 )
 
 // Logger4go embedds go's log.Logger as an anonymous field and
@@ -49,25 +51,65 @@ import (
 type Logger4go struct {
 	name     string
 	handlers []Handler
-	filter   Filter
+	filter   SeverityFilter
 	mutex    sync.Mutex
 	*log.Logger
 }
 
-type Filter int
+// SeverityFilter represents a severity level to filter
+// go:generate stringer -type=SeverityFilter
+type SeverityFilter int
 
-// log filters
+// severity levels
 const (
-	EMERG Filter = 1 << iota
-	ALERT
-	CRIT
-	ERR
-	WARN
-	NOTICE
-	INFO
-	DEBUG
-	ALL = EMERG | ALERT | CRIT | ERR | WARN | NOTICE | INFO | DEBUG
+	Emerg SeverityFilter = 1 << iota
+	Alert
+	Crit
+	Err
+	Warning
+	Notice
+	Info
+	Debug
+	All = Emerg | Alert | Crit | Err | Warning | Notice | Info | Debug
 )
+
+// severity keywords
+var (
+	EmergString   = "-emerg-"
+	AlertString   = "-alert-"
+	CritString    = "-crit-"
+	ErrString     = "-err-"
+	WarningString = "-warning-"
+	NoticeString  = "-notice-"
+	InfoString    = "-info-"
+	DebugString   = "-debug-"
+	AllString     = ""
+)
+
+func (s SeverityFilter) String() string {
+	switch {
+	case s == 1:
+		return EmergString
+	case s == 2:
+		return AlertString
+	case s == 4:
+		return CritString
+	case s == 8:
+		return ErrString
+	case s == 16:
+		return WarningString
+	case s == 32:
+		return NoticeString
+	case s == 64:
+		return InfoString
+	case s == 128:
+		return DebugString
+	case s == 255:
+		return AllString
+	default:
+		return "SeverityFilter(" + strconv.FormatInt(int64(s), 10) + ")"
+	}
+}
 
 // from go's log package
 const (
@@ -103,7 +145,7 @@ func GetWithFlags(name string, flags int) *Logger4go {
 	if !ok {
 		// create with a noop writer/handler
 		lg = newLogger(&NoopHandler{}, name, name+" ", flags)
-		lg.filter = ALL
+		lg.filter = All
 		mu.Lock()
 		defer mu.Unlock()
 		loggers4go[name] = lg
@@ -111,9 +153,10 @@ func GetWithFlags(name string, flags int) *Logger4go {
 	return lg
 }
 
+// AddConsoleHandler adds a logger that writes to stdout/console
 func (l *Logger4go) AddConsoleHandler() (ch *ConsoleHandler, err error) {
 	ch = &ConsoleHandler{}
-	saveHandler(l, ch)
+	registerHandler(l, ch)
 
 	return ch, nil
 }
@@ -126,19 +169,18 @@ func (l *Logger4go) AddStdFileHandler(filePath string) (fh *FileHandler, err err
 	if err != nil {
 		return nil, err
 	}
-	saveHandler(l, fh)
+	registerHandler(l, fh)
 	return fh, nil
 }
 
-// AddFileHandler adds a file handler with a specified max filesize, max number of rotations, a starting sequence no
-// and if compression and daily rotation is enabled
-func (l *Logger4go) AddFileHandler(filePath string, size uint, rotate byte, seq byte, compress, daily bool) (fh *FileHandler, err error) {
+// AddFileHandler adds a file handler with a specified max filesize, max number of rotations, file compression and daily rotation
+func (l *Logger4go) AddFileHandler(filePath string, maxFileSize uint, maxRotation byte, isCompressFile, isDailyRotation bool) (fh *FileHandler, err error) {
 
-	fh, err = newFileHandler(filePath, size, rotate, seq, compress, daily)
+	fh, err = newFileHandler(filePath, maxFileSize, maxRotation, 1, isCompressFile, isDailyRotation)
 	if err != nil {
 		return nil, err
 	}
-	saveHandler(l, fh)
+	registerHandler(l, fh)
 	return fh, nil
 }
 
@@ -154,115 +196,135 @@ func (l *Logger4go) AddSyslogHandler(protocol, ipaddr string, priority syslog.Pr
 	if err != nil {
 		return nil, err
 	}
-	saveHandler(l, sh)
+	registerHandler(l, sh)
 
 	return sh, err
 }
 
 // AddHandler adds a custom handler which conforms to the Handler interface.
 func (l *Logger4go) AddHandler(handler Handler) {
-	saveHandler(l, handler)
+	registerHandler(l, handler)
 }
 
+// Handlers returns a list of registered handlers
 func (l *Logger4go) Handlers() []Handler {
 	return l.handlers
 }
 
+// Emergf log
 func (l *Logger4go) Emergf(format string, v ...interface{}) {
-	l.doPrintf(EMERG, format, v...)
+	l.doPrintf(Emerg, format, v...)
 }
 
+// Emerg log
 func (l *Logger4go) Emerg(v ...interface{}) {
-	l.doPrintf(EMERG, "%s", v...)
+	l.doPrintf(Emerg, "%s", v...)
 }
 
+// Alertf log
 func (l *Logger4go) Alertf(format string, v ...interface{}) {
-	l.doPrintf(ALERT, format, v...)
+	l.doPrintf(Alert, format, v...)
 }
 
+// Alert log
 func (l *Logger4go) Alert(v ...interface{}) {
-	l.doPrintf(ALERT, "%s", v...)
+	l.doPrintf(Alert, "%s", v...)
 }
 
+// Critf log
 func (l *Logger4go) Critf(format string, v ...interface{}) {
-	l.doPrintf(CRIT, format, v...)
+	l.doPrintf(Crit, format, v...)
 }
 
+// Crit log
 func (l *Logger4go) Crit(v ...interface{}) {
-	l.doPrintf(CRIT, "%s", v...)
+	l.doPrintf(Crit, "%s", v...)
 }
 
+// Errf log
 func (l *Logger4go) Errf(format string, v ...interface{}) {
-	l.doPrintf(ERR, format, v...)
+	l.doPrintf(Err, format, v...)
 }
 
+// Err log
 func (l *Logger4go) Err(v ...interface{}) {
-	l.doPrintf(ERR, "%s", v...)
+	l.doPrintf(Err, "%s", v...)
 }
 
+// Warnf log
 func (l *Logger4go) Warnf(format string, v ...interface{}) {
-	l.doPrintf(WARN, format, v...)
+	l.doPrintf(Warning, format, v...)
 }
 
+// Warn log
 func (l *Logger4go) Warn(v ...interface{}) {
-	l.doPrintf(WARN, "%s", v...)
+	l.doPrintf(Warning, "%s", v...)
 }
 
+// Noticef log
 func (l *Logger4go) Noticef(format string, v ...interface{}) {
-	l.doPrintf(NOTICE, format, v...)
+	l.doPrintf(Notice, format, v...)
 }
 
+// Notice log
 func (l *Logger4go) Notice(v ...interface{}) {
-	l.doPrintf(NOTICE, "%s", v...)
+	l.doPrintf(Notice, "%s", v...)
 }
 
+// Infof log
 func (l *Logger4go) Infof(format string, v ...interface{}) {
-	l.doPrintf(INFO, format, v...)
+	l.doPrintf(Info, format, v...)
 }
 
+// Info log
 func (l *Logger4go) Info(v ...interface{}) {
-	l.doPrintf(INFO, "%s", v...)
+	l.doPrintf(Info, "%s", v...)
 }
 
+// Debugf log
 func (l *Logger4go) Debugf(format string, v ...interface{}) {
-	l.doPrintf(DEBUG, format, v...)
+	l.doPrintf(Debug, format, v...)
 }
 
+// Debug log
 func (l *Logger4go) Debug(v ...interface{}) {
-	l.doPrintf(DEBUG, "%s", v...)
+	l.doPrintf(Debug, "%s", v...)
 }
 
-func (l *Logger4go) IsFilterSet(f Filter) bool {
+// IsFilterSet returns true if the severity filter is set
+func (l *Logger4go) IsFilterSet(f SeverityFilter) bool {
 	return f&l.filter == f
 }
 
-func (l *Logger4go) SetFilter(fFlags Filter) {
+// SetFilter sets a severity filter
+func (l *Logger4go) SetFilter(f SeverityFilter) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	l.filter = fFlags
+	l.filter = f
 }
 
-func (l *Logger4go) Filter(fFlags Filter) Filter {
-	return l.filter
-}
-
+// Flags returns the current set of logger flags
 func (l *Logger4go) Flags() int {
 	return l.Logger.Flags()
 }
 
+// SetFlags sets a logger flag
 func (l *Logger4go) SetFlags(flag int) {
 	l.Logger.SetFlags(flag)
 }
 
+// Prefix returns the logger prefix
 func (l *Logger4go) Prefix() string {
 	return l.Logger.Prefix()
 }
 
+// SetPrefix sets the logger prefix
 func (l *Logger4go) SetPrefix(prefix string) {
 	l.Logger.SetPrefix(prefix)
 }
 
+// SetOutput sets a writer
 func (l *Logger4go) SetOutput(out io.Writer) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -274,39 +336,15 @@ func (l *Logger4go) SetOutput(out io.Writer) {
 // Private
 //
 var mu = &sync.RWMutex{}
-
 var loggers4go = make(map[string]*Logger4go)
-
-var severity = []string{"-emerg-", "-alert-", "-crit-", "-err-", "-warn-", "-notice-", "-info-", "-debug-", ""}
 
 func init() {
 	Get("std").AddConsoleHandler()
 }
 
-func (l *Logger4go) doPrintf(f Filter, format string, v ...interface{}) {
+func (l *Logger4go) doPrintf(f SeverityFilter, format string, v ...interface{}) {
 	if l.IsFilterSet(f) {
-		i := DEBUG
-		switch f {
-		default:
-			i = 7
-		case EMERG:
-			i = 0
-		case ALERT:
-			i = 1
-		case CRIT:
-			i = 2
-		case ERR:
-			i = 3
-		case WARN:
-			i = 4
-		case NOTICE:
-			i = 5
-		case INFO:
-			i = 6
-		case DEBUG:
-			i = 7
-		}
-		l.Printf(severity[i]+" "+format, v...)
+		l.Printf(fmt.Sprintf("%s ", f) + format, v...)
 	}
 }
 
@@ -314,7 +352,7 @@ func newLogger(out io.Writer, name string, prefix string, flags int) *Logger4go 
 	return &Logger4go{name: name, Logger: log.New(out, prefix, flags)}
 }
 
-func saveHandler(l *Logger4go, handler Handler) {
+func registerHandler(l *Logger4go, handler Handler) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 

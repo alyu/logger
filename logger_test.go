@@ -27,8 +27,17 @@ func TestFileHandler(t *testing.T) {
 	lg.Alert("This log event should be on the console/stdout and log file")
 }
 
-func TestFileHandlerErr(t *testing.T) {
-	_, err := lg.AddStdFileHandler("/tmp/logger_no.log")
+func TestFileHandlerWithLogration(t *testing.T) {
+	// add a file handler which rotates 5 files with a maximum size of 5KB starting with sequence no 1,
+	// daily midnight rotation disabled and with compress logs enabled
+	_, err := lg.AddFileHandler("/tmp/logger2.log", uint(5*KB), 5, true, false)
+	if err != nil {
+		t.Logf("Unable to add file handler: %v", err)
+	}
+}
+
+func TestFileHandlerWithErr(t *testing.T) {
+	_, err := lg.AddStdFileHandler("/abc/logger.log")
 	if err != nil {
 		t.Logf("Unable to add file handler: %v", err)
 	}
@@ -47,15 +56,16 @@ func TestSyslogHandler(t *testing.T) {
 }
 
 func TestFilter(t *testing.T) {
-	lg.Debug("Setting filter to DEBUG|CRIT")
-	lg.SetFilter(DEBUG | CRIT)
+	lg.Debug("Setting filter to Info|Crit")
+	lg.SetFilter(Info| Crit)
+	lg.Emerg("This should not be written out")
 
 	startThreads()
-
-	go func() { lg.Emerg("This should not be written out") }()
 }
 
 func TestLogRotate(t *testing.T) {
+	lg.Info("Setting filter to All")
+	lg.SetFilter(All)
 
 	for i := 0; i < 10e3; i++ {
 		lg.Debug("A debug message")
@@ -67,9 +77,9 @@ func TestLogRotate(t *testing.T) {
 		lg.Alert("An alert message")
 		lg.Emerg("An emergency message")
 
-		lg.Debugf("A debug message, %s", "using format")
-		lg.Infof("An info message, %s", "using format")
-		lg.Noticef("A notice message, %s", "using format")
+		lg.Debugf("A %s debug message", "formattated")
+		lg.Infof("An %s info message", "formatted")
+		lg.Noticef("A %s notice message", "formatted")
 		time.Sleep(5e3 * time.Millisecond)
 	}
 }

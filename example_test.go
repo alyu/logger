@@ -21,7 +21,7 @@ func Example() {
 	// max filesize of 1MB starting with sequence no 1, daily rotate and compression disabled
 	_, err := lg.AddStdFileHandler("/tmp/logger.log")
 	if err != nil {
-		fmt.Errorf("%v", err)
+		_ = fmt.Errorf("%v", err)
 	}
 	lg.Alert("This is an alert message written to the console and log file")
 
@@ -30,17 +30,17 @@ func Example() {
 	ipaddr := ""
 	sh, err := lg.AddSyslogHandler(protocol, ipaddr, syslog.LOG_INFO|syslog.LOG_LOCAL0, "example")
 	if err != nil {
-		fmt.Errorf("%v", err)
+		_ = fmt.Errorf("%v", err)
 	}
 	lg.Notice("This is a critical message written to the console, log file and syslog")
 	lg.Notice("The format written to syslog is the same as for the console and log file")
 	err = sh.Out.Err("This is a message to syslog without any preformatted header, it just contains this message")
 	if err != nil {
-		fmt.Errorf("%v", err)
+		_ = fmt.Errorf("%v", err)
 	}
 
 	// filter logs
-	lg.SetFilter(logger.DEBUG | logger.INFO)
+	lg.SetFilter(logger.Debug | logger.Info)
 	lg.Alert("This message should not be shown")
 	lg.Debug("This debug message is filtered through")
 	lg.Info("As well as this info message")
@@ -54,14 +54,14 @@ func Example() {
 
 	// add a file handler which rotates 5 files with a maximum size of 5MB starting with sequence no 1, daily midnight rotation disabled
 	// and with compress logs enabled
-	log.AddFileHandler("/tmp/logger2.log", uint(5*logger.MB), 5, 1, true, false)
+	log.AddFileHandler("/tmp/logger2.log", uint(5*logger.MB), 5, true, false)
 
-	// add a file handler which keeps logs for 5 days with no filesize limit starting with sequence no 1, daily midnight rotation
+	// add a file handler which keeps 5 rotated logs with no filesize limit starting with sequence no 1, daily midnight rotation
 	// and  compress logs enabled
-	log.AddFileHandler("/tmp/logger3.log", 0, 5, 1, true, true)
+	log.AddFileHandler("/tmp/logger3.log", 0, 5, true, true)
 
-	// add a file handler with only one daily midnight rotation and compress logs enabled
-	log.AddFileHandler("/tmp/logger3.log", 0, 1, 1, true, true)
+	// add a file handler with only daily midnight rotation and compress logs enabled
+	log.AddFileHandler("/tmp/logger3.log", 0, 1, true, true)
 
 	// Same as above
 	fh, _ := log.AddStdFileHandler("/tmp/logger4.log")
