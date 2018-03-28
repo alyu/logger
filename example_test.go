@@ -52,9 +52,9 @@ func Example() {
 	lg = logger.GetWithFlags("micro", logger.Ldate|logger.Ltime|logger.Lmicroseconds)
 	lg.Info("This is written out with micrseconds precision")
 
-	// get the standard logger
-	lg = logger.Std()
-	lg.Info("Standard logger always has a console handler and prefix 'main'")
+	// get the stdout logger
+	lg = logger.Stdout()
+	lg.Info("Stdout always has a console handler and prefix 'main'")
 	// Set a new prefix
 	lg.SetPrefix("api client")
 
@@ -75,4 +75,9 @@ func Example() {
 	fh.SetRotate(1)
 	fh.SetCompress(true)
 	fh.SetDaily(true)
+
+	// get the stderr logger
+	lg = logger.Stderr()
+	lg.Info("Stderr always has a console handler and prefix 'err'")
+	lg.Err("Writes to stderr")
 }

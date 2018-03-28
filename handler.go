@@ -43,6 +43,10 @@ type NoopHandler struct {
 type ConsoleHandler struct {
 }
 
+// ErrConsoleHandler writes to os.Stderr
+type ErrConsoleHandler struct {
+}
+
 // Write a log message.
 func (nh *NoopHandler) Write(b []byte) (n int, err error) {
 	return 0, nil
@@ -75,4 +79,23 @@ func (ch *ConsoleHandler) Close() error {
 // String returns the handler name.
 func (ch *ConsoleHandler) String() string {
 	return "ConsoleHandler"
+}
+
+// Write a log message.
+func (ch *ErrConsoleHandler) Write(b []byte) (n int, err error) {
+	n, err = os.Stderr.Write(b)
+	if n < len(b) {
+		return n, errors.New("Unable to write all bytes to stdout")
+	}
+	return n, err
+}
+
+// Close handler.
+func (ch *ErrConsoleHandler) Close() error {
+	return nil
+}
+
+// String returns the handler name.
+func (ch *ErrConsoleHandler) String() string {
+	return "ErrConsoleHandler"
 }

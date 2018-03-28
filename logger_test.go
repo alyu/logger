@@ -24,6 +24,11 @@ func TestStdout(t *testing.T) {
 	lg.Info("This log event should be written to stdout")
 }
 
+func TestStderr(t *testing.T) {
+	lg.AddErrConsoleHandler()
+	lg.Info("This log event should be written to stderr")
+}
+
 func TestFileHandler(t *testing.T) {
 	_, err := lg.AddStdFileHandler("/tmp/logger.log")
 	if err != nil {

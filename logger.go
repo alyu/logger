@@ -65,6 +65,24 @@ func init() {
 
 	// Set Std logger
 	Get("main").AddConsoleHandler()
+
+	// Set Err logger
+	Get("err").AddErrConsoleHandler()
+}
+
+// Def returns the default logger instance with a console handler with no prefix.
+func Def() *Logger4go {
+	return Logger
+}
+
+// Stdout returns a standard logger instance with a stdout console handler using prefix 'main'.
+func Stdout() *Logger4go {
+	return Get("main")
+}
+
+// Stderr returns the standard logger instance with a stderr console handler using prefix 'err'
+func Stderr() *Logger4go {
+	return Get("err")
 }
 
 // SeverityFilter represents a severity level to filter
@@ -136,15 +154,6 @@ const (
 	LstdFlags     = Ldate | Ltime // initial values for the standard logger
 )
 
-// Def returns the default logger instance with a console handler with no prefix.
-func Def() *Logger4go {
-	return Logger
-}
-
-// Std returns the standard logger instance with a console handler with 'main' prefix.
-func Std() *Logger4go {
-	return Get("main")
-}
 
 // Get returns a logger with the specified name and default log header flags.
 // If it does not exist a new instance will be created.
@@ -176,6 +185,14 @@ func GetWithFlags(name string, flags int) *Logger4go {
 // AddConsoleHandler adds a logger that writes to stdout/console
 func (l *Logger4go) AddConsoleHandler() (ch *ConsoleHandler, err error) {
 	ch = &ConsoleHandler{}
+	registerHandler(l, ch)
+
+	return ch, nil
+}
+
+// AddErrConsoleHandler adds a logger that writes to stderr/console
+func (l *Logger4go) AddErrConsoleHandler() (ch *ErrConsoleHandler, err error) {
+	ch = &ErrConsoleHandler{}
 	registerHandler(l, ch)
 
 	return ch, nil
