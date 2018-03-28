@@ -6,9 +6,13 @@ import (
 	"log/syslog"
 )
 
-var lg *logger.Logger4go
-
 func Example() {
+	var lg *logger.Logger4go
+	// use the default Logger instance for the package
+	lg = logger.Def()
+	lg.Info("This is the default Logger available with the package and outputs to os.Stdout with no prefix")
+	logger.Logger.Info("logger.Logger is the default exported Logger instance variable")
+
 	// get a new logger instance named "example" and with prefix example
 	lg = logger.Get("example")
 	lg.Info("This is not written out, we need to add a handler first")
@@ -48,23 +52,25 @@ func Example() {
 	lg = logger.GetWithFlags("micro", logger.Ldate|logger.Ltime|logger.Lmicroseconds)
 	lg.Info("This is written out with micrseconds precision")
 
-	// get standard logger
-	log := logger.Std()
-	log.Info("Standard logger always has a console handler")
+	// get the standard logger
+	lg = logger.Std()
+	lg.Info("Standard logger always has a console handler and prefix 'main'")
+	// Set a new prefix
+	lg.SetPrefix("api client")
 
 	// add a file handler which rotates 5 files with a maximum size of 5MB starting with sequence no 1, daily midnight rotation disabled
 	// and with compress logs enabled
-	log.AddFileHandler("/tmp/logger2.log", uint(5*logger.MB), 5, true, false)
+	lg.AddFileHandler("/tmp/logger2.log", uint(5*logger.MB), 5, true, false)
 
 	// add a file handler which keeps 5 rotated logs with no filesize limit starting with sequence no 1, daily midnight rotation
 	// and  compress logs enabled
-	log.AddFileHandler("/tmp/logger3.log", 0, 5, true, true)
+	lg.AddFileHandler("/tmp/logger3.log", 0, 5, true, true)
 
 	// add a file handler with only daily midnight rotation and compress logs enabled
-	log.AddFileHandler("/tmp/logger3.log", 0, 1, true, true)
+	lg.AddFileHandler("/tmp/logger3.log", 0, 1, true, true)
 
 	// Same as above
-	fh, _ := log.AddStdFileHandler("/tmp/logger4.log")
+	fh, _ := lg.AddStdFileHandler("/tmp/logger4.log")
 	fh.SetSize(0)
 	fh.SetRotate(1)
 	fh.SetCompress(true)

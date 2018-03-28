@@ -56,6 +56,17 @@ type Logger4go struct {
 	*log.Logger
 }
 
+// Logger provides a default Logger4go instance that output to the console
+var Logger *Logger4go
+
+func init() {
+	Logger = Get("")
+	Logger.AddConsoleHandler()
+
+	// Set Std logger
+	Get("main").AddConsoleHandler()
+}
+
 // SeverityFilter represents a severity level to filter
 // go:generate stringer -type=SeverityFilter
 type SeverityFilter int
@@ -125,9 +136,14 @@ const (
 	LstdFlags     = Ldate | Ltime // initial values for the standard logger
 )
 
-// Std returns the standard logger instance with a console handler.
+// Def returns the default logger instance with a console handler with no prefix.
+func Def() *Logger4go {
+	return Logger
+}
+
+// Std returns the standard logger instance with a console handler with 'main' prefix.
 func Std() *Logger4go {
-	return Get("std")
+	return Get("main")
 }
 
 // Get returns a logger with the specified name and default log header flags.
@@ -143,8 +159,12 @@ func GetWithFlags(name string, flags int) *Logger4go {
 	lg, ok := loggers4go[name]
 	mu.RUnlock()
 	if !ok {
+		prefix := name + " "
+		if name == "" {
+			prefix = ""
+		}
 		// create with a noop writer/handler
-		lg = newLogger(&NoopHandler{}, name, name+" ", flags)
+		lg = newLogger(&NoopHandler{}, name, prefix, flags)
 		lg.filter = All
 		mu.Lock()
 		defer mu.Unlock()
@@ -251,6 +271,16 @@ func (l *Logger4go) Err(v ...interface{}) {
 	l.doPrintf(Err, "%s", v...)
 }
 
+// Warningf log
+func (l *Logger4go) Warningf(format string, v ...interface{}) {
+	l.doPrintf(Warning, format, v...)
+}
+
+// Warning log
+func (l *Logger4go) Warning(v ...interface{}) {
+	l.doPrintf(Warning, "%s", v...)
+}
+
 // Warnf log
 func (l *Logger4go) Warnf(format string, v ...interface{}) {
 	l.doPrintf(Warning, format, v...)
@@ -337,10 +367,6 @@ func (l *Logger4go) SetOutput(out io.Writer) {
 //
 var mu = &sync.RWMutex{}
 var loggers4go = make(map[string]*Logger4go)
-
-func init() {
-	Get("std").AddConsoleHandler()
-}
 
 func (l *Logger4go) doPrintf(f SeverityFilter, format string, v ...interface{}) {
 	if l.IsFilterSet(f) {

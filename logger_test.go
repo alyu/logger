@@ -9,7 +9,12 @@ import (
 
 var lg *Logger4go
 
-func TestInit(t *testing.T) {
+func TestDefaultLogger(t *testing.T) {
+	Logger.Infof("%v is the default logger", "Logger")
+	Logger.Debugf("%+v", Logger)
+}
+
+func TestInitNewLogger(t *testing.T) {
 	lg = GetWithFlags("testing", Ldate|Ltime|Lmicroseconds)
 	lg.Info("This log event should not be written out")
 }
