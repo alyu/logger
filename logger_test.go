@@ -25,8 +25,9 @@ func TestStdout(t *testing.T) {
 }
 
 func TestStderr(t *testing.T) {
-	lg.AddErrConsoleHandler()
+	h, _ := lg.AddErrConsoleHandler()
 	lg.Info("This log event should be written to stderr")
+	lg.RemoveHandler(h)
 }
 
 func TestFileHandler(t *testing.T) {
@@ -67,7 +68,7 @@ func TestSyslogHandler(t *testing.T) {
 
 func TestFilter(t *testing.T) {
 	lg.Debug("Setting filter to Info|Crit")
-	lg.SetFilter(Info| Crit)
+	lg.SetFilter(InfoSeverity | CritSeverity)
 	lg.Emerg("This should not be written out")
 
 	startThreads()

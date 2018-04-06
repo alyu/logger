@@ -91,15 +91,15 @@ type SeverityFilter int
 
 // severity levels
 const (
-	Emerg SeverityFilter = 1 << iota
-	Alert
-	Crit
-	Err
-	Warning
-	Notice
-	Info
-	Debug
-	All = Emerg | Alert | Crit | Err | Warning | Notice | Info | Debug
+	EmergSeverity SeverityFilter = 1 << iota
+	AlertSeverity
+	CritSeverity
+	ErrSeverity
+	WarningSeverity
+	NoticeSeverity
+	InfoSeverity
+	DebugSeverity
+	All = EmergSeverity | AlertSeverity | CritSeverity | ErrSeverity | WarningSeverity | NoticeSeverity | InfoSeverity | DebugSeverity
 )
 
 // severity keywords
@@ -243,6 +243,19 @@ func (l *Logger4go) AddHandler(handler Handler) {
 	registerHandler(l, handler)
 }
 
+// RemoveHandler removes the handler from the logger.
+func (l *Logger4go) RemoveHandler(handler Handler) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	for i, h := range l.handlers {
+		if h == handler {
+			l.handlers = append(l.handlers[:i], l.handlers[i+1:]...)
+			break
+		}
+	}
+}
+
 // Handlers returns a list of registered handlers
 func (l *Logger4go) Handlers() []Handler {
 	return l.handlers
@@ -250,92 +263,182 @@ func (l *Logger4go) Handlers() []Handler {
 
 // Emergf log
 func (l *Logger4go) Emergf(format string, v ...interface{}) {
-	l.doPrintf(Emerg, format, v...)
+	l.doPrintf(EmergSeverity, format, v...)
 }
 
 // Emerg log
 func (l *Logger4go) Emerg(v ...interface{}) {
-	l.doPrintf(Emerg, "%s", v...)
+	l.doPrintf(EmergSeverity, "%s", v...)
+}
+
+// Emergf log
+func Emergf(format string, v ...interface{}) {
+	Logger.Emergf(format, v)
+}
+
+// Emerg log
+func Emerg(v ...interface{}) {
+	Logger.Emerg(v)
 }
 
 // Alertf log
 func (l *Logger4go) Alertf(format string, v ...interface{}) {
-	l.doPrintf(Alert, format, v...)
+	l.doPrintf(AlertSeverity, format, v...)
 }
 
 // Alert log
 func (l *Logger4go) Alert(v ...interface{}) {
-	l.doPrintf(Alert, "%s", v...)
+	l.doPrintf(AlertSeverity, "%s", v...)
+}
+
+// Alertf log
+func Alertf(format string, v ...interface{}) {
+	Logger.Alertf(format, v)
+}
+
+// Alert log
+func Alert(v ...interface{}) {
+	Logger.Alert(v)
 }
 
 // Critf log
 func (l *Logger4go) Critf(format string, v ...interface{}) {
-	l.doPrintf(Crit, format, v...)
+	l.doPrintf(CritSeverity, format, v...)
 }
 
 // Crit log
 func (l *Logger4go) Crit(v ...interface{}) {
-	l.doPrintf(Crit, "%s", v...)
+	l.doPrintf(CritSeverity, "%s", v...)
+}
+
+// Critf log
+func Critf(format string, v ...interface{}) {
+	Logger.Critf(format, v)
+}
+
+// Crit log
+func Crit(v ...interface{}) {
+	Logger.Crit(v)
 }
 
 // Errf log
 func (l *Logger4go) Errf(format string, v ...interface{}) {
-	l.doPrintf(Err, format, v...)
+	l.doPrintf(ErrSeverity, format, v...)
 }
 
 // Err log
 func (l *Logger4go) Err(v ...interface{}) {
-	l.doPrintf(Err, "%s", v...)
+	l.doPrintf(ErrSeverity, "%s", v...)
+}
+
+// Errf log
+func Errf(format string, v ...interface{}) {
+	Logger.Errf(format, v)
+}
+
+// Err log
+func Err(v ...interface{}) {
+	Logger.Err(v)
 }
 
 // Warningf log
 func (l *Logger4go) Warningf(format string, v ...interface{}) {
-	l.doPrintf(Warning, format, v...)
+	l.doPrintf(WarningSeverity, format, v...)
 }
 
 // Warning log
 func (l *Logger4go) Warning(v ...interface{}) {
-	l.doPrintf(Warning, "%s", v...)
+	l.doPrintf(WarningSeverity, "%s", v...)
+}
+
+// Warningf log
+func Warningf(format string, v ...interface{}) {
+	Logger.Warningf(format, v)
+}
+
+// Warning log
+func Warning(v ...interface{}) {
+	Logger.Warning(v)
 }
 
 // Warnf log
 func (l *Logger4go) Warnf(format string, v ...interface{}) {
-	l.doPrintf(Warning, format, v...)
+	l.doPrintf(WarningSeverity, format, v...)
 }
 
 // Warn log
 func (l *Logger4go) Warn(v ...interface{}) {
-	l.doPrintf(Warning, "%s", v...)
+	l.doPrintf(WarningSeverity, "%s", v...)
+}
+
+// Warnf log
+func Warnf(format string, v ...interface{}) {
+	Logger.Warnf(format, v)
+}
+
+//Warn log
+func Warn(v ...interface{}) {
+	Logger.Warn(v)
 }
 
 // Noticef log
 func (l *Logger4go) Noticef(format string, v ...interface{}) {
-	l.doPrintf(Notice, format, v...)
+	l.doPrintf(NoticeSeverity, format, v...)
 }
 
 // Notice log
 func (l *Logger4go) Notice(v ...interface{}) {
-	l.doPrintf(Notice, "%s", v...)
+	l.doPrintf(NoticeSeverity, "%s", v...)
+}
+
+// Noticef log
+func Noticef(format string, v ...interface{}) {
+	Logger.Noticef(format, v)
+}
+
+// Notice log
+func Notice(v ...interface{}) {
+	Logger.Notice(v)
 }
 
 // Infof log
 func (l *Logger4go) Infof(format string, v ...interface{}) {
-	l.doPrintf(Info, format, v...)
+	l.doPrintf(InfoSeverity, format, v...)
 }
 
 // Info log
 func (l *Logger4go) Info(v ...interface{}) {
-	l.doPrintf(Info, "%s", v...)
+	l.doPrintf(InfoSeverity, "%s", v...)
+}
+
+// Infof log
+func Infof(format string, v ...interface{}) {
+	Logger.Infof(format, v)
+}
+
+// Info log
+func Info(v ...interface{}) {
+	Logger.Info(v)
 }
 
 // Debugf log
 func (l *Logger4go) Debugf(format string, v ...interface{}) {
-	l.doPrintf(Debug, format, v...)
+	l.doPrintf(DebugSeverity, format, v...)
 }
 
 // Debug log
 func (l *Logger4go) Debug(v ...interface{}) {
-	l.doPrintf(Debug, "%s", v...)
+	l.doPrintf(DebugSeverity, "%s", v...)
+}
+
+// Debugf log
+func Debugf(format string, v ...interface{}) {
+	Logger.Debugf(format, v)
+}
+
+// Debug log
+func Debug(v ...interface{}) {
+	Logger.Debug(v)
 }
 
 // IsFilterSet returns true if the severity filter is set

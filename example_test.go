@@ -7,6 +7,12 @@ import (
 )
 
 func Example() {
+	// Use the default logger.Logger instance
+	logger.Info("logger.Info() severity")
+	logger.Alert("logger.Alert() severity")
+	logger.Debug("logger.Debug() debug")
+	logger.Notice("logger.Notice() severity")
+
 	var lg *logger.Logger4go
 	// use the default Logger instance for the package
 	lg = logger.Def()
@@ -44,7 +50,7 @@ func Example() {
 	}
 
 	// filter logs
-	lg.SetFilter(logger.Debug | logger.Info)
+	lg.SetFilter(logger.DebugSeverity | logger.InfoSeverity)
 	lg.Alert("This message should not be shown")
 	lg.Debug("This debug message is filtered through")
 	lg.Info("As well as this info message")
