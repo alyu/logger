@@ -2,8 +2,9 @@ package logger_test
 
 import (
 	"fmt"
-	"github.com/alyu/logger"
+	"log"
 	"log/syslog"
+	"github.com/alyu/logger"
 )
 
 func Example() {
@@ -24,7 +25,7 @@ func Example() {
 	lg.Info("This is not written out, we need to add a handler first")
 
 	// log to console/stdout
-	lg.AddConsoleHandler()
+	lg.AddStdoutHandler()
 	lg.Info("This will be written out to stdout")
 
 	// log to file. as default the log will be rotated 5 times with a
@@ -55,7 +56,7 @@ func Example() {
 	lg.Debug("This debug message is filtered through")
 	lg.Info("As well as this info message")
 
-	lg = logger.GetWithFlags("micro", logger.Ldate|logger.Ltime|logger.Lmicroseconds)
+	lg = logger.GetWithFlags("micro", log.Ldate|log.Ltime|log.Lmicroseconds)
 	lg.Info("This is written out with micrseconds precision")
 
 	// get the stdout logger

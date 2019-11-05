@@ -17,22 +17,23 @@
 //
 // Example output:
 // 	main 2013/06/21 08:21:44.680513 -info- init called
-// 	100m sprint 2013/06/21 08:21:44.680712 -info- Started 100m sprint: Should take 10 seconds.
-// 	Long jump 2013/06/21 08:21:44.680727 -info- Started Long jump: Should take 6 seconds.
-// 	High jump 2013/06/21 08:21:44.680748 -info- Started High jump: Should take 3 seconds.
-// 	High jump 2013/06/21 08:21:47.683402 -info- Finished High jump
-// 	Long jump 2013/06/21 08:21:50.683182 -info- Finished Long jump
-// 	100m sprint 2013/06/21 08:21:54.683871 -info- Finished 100m sprint
-// 	main 2013/06/21 08:22:14 -debug- A debug message
-// 	main 2013/06/21 08:22:14 -info- An info message
-// 	main 2013/06/21 08:22:14 -notice- A notice message
-// 	main 2013/06/21 08:22:14 -warn- A warning message
-// 	main 2013/06/21 08:22:14 -err- An error message
-// 	main 2013/06/21 08:22:14 -crit- A critical message
-// 	main 2013/06/21 08:22:14 -Alert- An alert message
-// 	main 2013/06/21 08:22:14 -Emerge- An Emergeency message
+// 	100m sprint 2013/06/21 08:21:44.680712  info  Started 100m sprint: Should take 10 seconds.
+// 	Long jump 2013/06/21 08:21:44.680727  info  Started Long jump: Should take 6 seconds.
+// 	High jump 2013/06/21 08:21:44.680748  info  Started High jump: Should take 3 seconds.
+// 	High jump 2013/06/21 08:21:47.683402  info  Finished High jump
+// 	Long jump 2013/06/21 08:21:50.683182  info  Finished Long jump
+// 	100m sprint 2013/06/21 08:21:54.683871  info  Finished 100m sprint
+// 	main 2013/06/21 08:22:14  debug    A debug message
+// 	main 2013/06/21 08:22:14  info     An info message
+// 	main 2013/06/21 08:22:14  notice   A notice message
+// 	main 2013/06/21 08:22:14  warning  A warning message
+// 	main 2013/06/21 08:22:14  err      An error message
+// 	main 2013/06/21 08:22:14  crit     A critical message
+// 	main 2013/06/21 08:22:14  alert    An alert message
+// 	main 2013/06/21 08:22:14  emerge   An Emergeency message
 //
 // TODO:
+//  - Set configuration from Env variables
 // 	- Custom header format
 //	- Read settings from config file
 package logger
@@ -56,18 +57,19 @@ type Logger4go struct {
 	*log.Logger
 }
 
-// Logger provides a default Logger4go instance that output to the console
+// Logger provides a default Logger4go instance that outputs to the console
 var Logger *Logger4go
 
 func init() {
 	Logger = Get("")
-	Logger.AddConsoleHandler()
+	// Use stdout handler as default
+	Logger.AddStdoutHandler()
 
-	// Set Std logger
-	Get("main").AddConsoleHandler()
+	// Create a Stdout logger
+	Get("main").AddStdoutHandler()
 
-	// Set Err logger
-	Get("err").AddErrConsoleHandler()
+	// Create a Stderr logger
+	Get("err").AddStderrHandler()
 }
 
 // Def returns the default logger instance with a console handler with no prefix.
@@ -99,61 +101,46 @@ const (
 	NoticeSeverity
 	InfoSeverity
 	DebugSeverity
-	All = EmergSeverity | AlertSeverity | CritSeverity | ErrSeverity | WarningSeverity | NoticeSeverity | InfoSeverity | DebugSeverity
+	AllSeverity = EmergSeverity | AlertSeverity | CritSeverity | ErrSeverity | WarningSeverity | NoticeSeverity | InfoSeverity | DebugSeverity
 )
 
 // severity keywords
-var (
-	EmergString   = "-emerg-"
-	AlertString   = "-alert-"
-	CritString    = "-crit-"
-	ErrString     = "-err-"
-	WarningString = "-warning-"
-	NoticeString  = "-notice-"
-	InfoString    = "-info-"
-	DebugString   = "-debug-"
+const (
+	EmergString   = " emerg   "
+	AlertString   = " alert   "
+	CritString    = " crit    "
+	ErrString     = " err     "
+	WarningString = " warning "
+	NoticeString  = " notice  "
+	InfoString    = " info    "
+	DebugString   = " debug   "
 	AllString     = ""
 )
 
 func (s SeverityFilter) String() string {
 	switch {
-	case s == 1:
+	case s == EmergSeverity:
 		return EmergString
-	case s == 2:
+	case s == AlertSeverity:
 		return AlertString
-	case s == 4:
+	case s == CritSeverity:
 		return CritString
-	case s == 8:
+	case s == ErrSeverity:
 		return ErrString
-	case s == 16:
+	case s == WarningSeverity:
 		return WarningString
-	case s == 32:
+	case s == NoticeSeverity:
 		return NoticeString
-	case s == 64:
+	case s == InfoSeverity:
 		return InfoString
-	case s == 128:
+	case s == DebugSeverity:
 		return DebugString
-	case s == 255:
+	case s == AllSeverity:
 		return AllString
 	default:
 		return "SeverityFilter(" + strconv.FormatInt(int64(s), 10) + ")"
 	}
 }
-
-// from go's log package
-const (
-	// Bits or'ed together to control what's printed. There is no control over the
-	// order they appear (the order listed here) or the format they present (as
-	// described in the comments).  A colon appears after these items:
-	//	2009/01/23 01:23:23.123123 /a/b/c/d.go:23: message
-	Ldate         = 1 << iota     // the date: 2009/01/23
-	Ltime                         // the time: 01:23:23
-	Lmicroseconds                 // microsecond resolution: 01:23:23.123123.  assumes Ltime.
-	Llongfile                     // full file name and line number: /a/b/c/d.go:23
-	Lshortfile                    // final file name element and line number: d.go:23. overrides Llongfile
-	LstdFlags     = Ldate | Ltime // initial values for the standard logger
-)
-
 
 // Get returns a logger with the specified name and default log header flags.
 // If it does not exist a new instance will be created.
@@ -174,7 +161,7 @@ func GetWithFlags(name string, flags int) *Logger4go {
 		}
 		// create with a noop writer/handler
 		lg = newLogger(&NoopHandler{}, name, prefix, flags)
-		lg.filter = All
+		lg.filter = AllSeverity
 		mu.Lock()
 		defer mu.Unlock()
 		loggers4go[name] = lg
@@ -182,20 +169,20 @@ func GetWithFlags(name string, flags int) *Logger4go {
 	return lg
 }
 
-// AddConsoleHandler adds a logger that writes to stdout/console
-func (l *Logger4go) AddConsoleHandler() (ch *ConsoleHandler, err error) {
-	ch = &ConsoleHandler{}
-	registerHandler(l, ch)
+// AddStdoutHandler adds a logger that writes to stdout/console
+func (l *Logger4go) AddStdoutHandler() (sh *StdoutHandler, err error) {
+	sh = &StdoutHandler{}
+	registerHandler(l, sh)
 
-	return ch, nil
+	return sh, nil
 }
 
-// AddErrConsoleHandler adds a logger that writes to stderr/console
-func (l *Logger4go) AddErrConsoleHandler() (ch *ErrConsoleHandler, err error) {
-	ch = &ErrConsoleHandler{}
-	registerHandler(l, ch)
+// AddStderrHandler adds a logger that writes to stderr/console
+func (l *Logger4go) AddStderrHandler() (sh *StderrHandler, err error) {
+	sh = &StderrHandler{}
+	registerHandler(l, sh)
 
-	return ch, nil
+	return sh, nil
 }
 
 // AddStdFileHandler adds a file handler which rotates the log file 5 times with a maximum size of 1MB each
