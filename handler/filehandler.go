@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file.
 
-package logger
+package handler
 
 import (
 	"errors"
@@ -140,11 +140,13 @@ const (
 	defStartSeq   = 1
 )
 
-func newStdFileHandler(filePath string) (*FileHandler, error) {
-	return newFileHandler(filePath, DefFileSize, DefRotatation, defStartSeq, false, false)
+// NewStdFileHandler returns a new file handler
+func NewStdFileHandler(filePath string) (*FileHandler, error) {
+	return NewFileHandler(filePath, DefFileSize, DefRotatation, defStartSeq, false, false)
 }
 
-func newFileHandler(filePath string, maxFileSize uint, maxRotation byte, startSeq byte, compress bool, daily bool) (*FileHandler, error) {
+// NewFileHandler returns a new file handler with file rotation enabled
+func NewFileHandler(filePath string, maxFileSize uint, maxRotation byte, startSeq byte, compress bool, daily bool) (*FileHandler, error) {
 	fh := &FileHandler{filePath: filePath, size: maxFileSize, rotate: maxRotation, seq: startSeq, compress: compress, daily: daily}
 	// find a free log file sequence no
 	fh.findSequence()

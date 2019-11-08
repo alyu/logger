@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"log"
 	"log/syslog"
 	"testing"
 	"time"
@@ -10,22 +11,28 @@ import (
 var lg *Logger4go
 
 func TestDefaultLogger(t *testing.T) {
-	Logger.Infof("%v is the default logger", "Logger")
+	Logger.Emergf("The severity is %v", "emerge")
+	Logger.Alertf("The severity is %v", "alert")
+	Logger.Critf("The severity is %v", "crit")
+	Logger.Errf("The severity is %v", "err")
+	Logger.Warningf("The severity is %v", "warning")
+	Logger.Noticef("The severity is %v", "notice")
+	Logger.Infof("The severity is %v", "info")
 	Logger.Debugf("%+v", Logger)
 }
 
 func TestInitNewLogger(t *testing.T) {
-	lg = GetWithFlags("testing", Ldate|Ltime|Lmicroseconds)
+	lg = GetWithFlags("testing", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	lg.Info("This log event should not be written out")
 }
 
 func TestStdout(t *testing.T) {
-	lg.AddConsoleHandler()
+	lg.AddStdoutHandler()
 	lg.Info("This log event should be written to stdout")
 }
 
 func TestStderr(t *testing.T) {
-	h, _ := lg.AddErrConsoleHandler()
+	h, _ := lg.AddStderrHandler()
 	lg.Info("This log event should be written to stderr")
 	lg.RemoveHandler(h)
 }
@@ -36,15 +43,6 @@ func TestFileHandler(t *testing.T) {
 		t.Error("Unable to open /tmp/logger.log")
 	}
 	lg.Alert("This log event should be on the console/stdout and log file")
-}
-
-func TestFileHandlerWithLogration(t *testing.T) {
-	// add a file handler which rotates 5 files with a maximum size of 5KB starting with sequence no 1,
-	// daily midnight rotation disabled and with compress logs enabled
-	_, err := lg.AddFileHandler("/tmp/logger2.log", uint(5*KB), 5, true, false)
-	if err != nil {
-		t.Logf("Unable to add file handler: %v", err)
-	}
 }
 
 func TestFileHandlerWithErr(t *testing.T) {
@@ -66,33 +64,32 @@ func TestSyslogHandler(t *testing.T) {
 	}
 }
 
+func TestStructureLog(t * testing.T) {
+	st := struct {
+		A string
+		B int
+		C uint16
+	}{
+		"A string",
+		10,
+		100,
+	}
+
+	lg.Infof("Test structure: %+v", st)
+}
+
+func TestRegularLog(t *testing.T) {
+	lg.Println("This is the regular log line")
+}
+
 func TestFilter(t *testing.T) {
 	lg.Debug("Setting filter to Info|Crit")
 	lg.SetFilter(InfoSeverity | CritSeverity)
 	lg.Emerg("This should not be written out")
+	lg.Alert("This should not be written out")
 
 	startThreads()
-}
-
-func TestLogRotate(t *testing.T) {
-	lg.Info("Setting filter to All")
-	lg.SetFilter(All)
-
-	for i := 0; i < 10e3; i++ {
-		lg.Debug("A debug message")
-		lg.Info("An info message")
-		lg.Notice("A notice message")
-		lg.Warn("A warning message")
-		lg.Err("An error messagessage")
-		lg.Crit("A critical message")
-		lg.Alert("An alert message")
-		lg.Emerg("An emergency message")
-
-		lg.Debugf("A %s debug message", "formattated")
-		lg.Infof("An %s info message", "formatted")
-		lg.Noticef("A %s notice message", "formatted")
-		time.Sleep(5e3 * time.Millisecond)
-	}
+	time.Sleep(10e3* time.Millisecond)
 }
 
 func simulateEvent(name string, timeInSecs int64) {

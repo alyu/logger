@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file.
 
-package logger
+package handler
 
 import (
 	"errors"
@@ -38,7 +38,8 @@ func (sh *SyslogHandler) String() string {
 	return "SyslogHandler"
 }
 
-func newSyslogHandler(protocol, ipaddr string, priority syslog.Priority, tag string) (sh *SyslogHandler, err error) {
+// NewSyslogHandler returns a handler for syslog
+func NewSyslogHandler(protocol, ipaddr string, priority syslog.Priority, tag string) (sh *SyslogHandler, err error) {
 	sh = &SyslogHandler{}
 
 	sh.Out, err = syslog.Dial(protocol, ipaddr, priority, tag)

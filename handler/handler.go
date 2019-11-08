@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file.
 
-package logger
+package handler
 
 import (
 	"errors"
@@ -39,12 +39,12 @@ type Handler interface {
 type NoopHandler struct {
 }
 
-// ConsoleHandler writes to os.Stdout.
-type ConsoleHandler struct {
+// StdoutHandler writes to os.Stdout.
+type StdoutHandler struct {
 }
 
-// ErrConsoleHandler writes to os.Stderr
-type ErrConsoleHandler struct {
+// StderrHandler writes to os.Stderr
+type StderrHandler struct {
 }
 
 // Write a log message.
@@ -63,7 +63,7 @@ func (nh *NoopHandler) String() string {
 }
 
 // Write a log message.
-func (ch *ConsoleHandler) Write(b []byte) (n int, err error) {
+func (ch *StdoutHandler) Write(b []byte) (n int, err error) {
 	n, err = os.Stdout.Write(b)
 	if n < len(b) {
 		return n, errors.New("Unable to write all bytes to stdout")
@@ -72,17 +72,17 @@ func (ch *ConsoleHandler) Write(b []byte) (n int, err error) {
 }
 
 // Close handler.
-func (ch *ConsoleHandler) Close() error {
+func (ch *StdoutHandler) Close() error {
 	return nil
 }
 
 // String returns the handler name.
-func (ch *ConsoleHandler) String() string {
-	return "ConsoleHandler"
+func (ch *StdoutHandler) String() string {
+	return "StdoutHandler"
 }
 
 // Write a log message.
-func (ch *ErrConsoleHandler) Write(b []byte) (n int, err error) {
+func (ch *StderrHandler) Write(b []byte) (n int, err error) {
 	n, err = os.Stderr.Write(b)
 	if n < len(b) {
 		return n, errors.New("Unable to write all bytes to stdout")
@@ -91,11 +91,11 @@ func (ch *ErrConsoleHandler) Write(b []byte) (n int, err error) {
 }
 
 // Close handler.
-func (ch *ErrConsoleHandler) Close() error {
+func (ch *StderrHandler) Close() error {
 	return nil
 }
 
 // String returns the handler name.
-func (ch *ErrConsoleHandler) String() string {
-	return "ErrConsoleHandler"
+func (ch *StderrHandler) String() string {
+	return "StderrHandler"
 }

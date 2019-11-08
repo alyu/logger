@@ -2,8 +2,10 @@ package logger_test
 
 import (
 	"fmt"
-	"github.com/alyu/logger"
+	"log"
 	"log/syslog"
+	"github.com/alyu/logger"
+	"github.com/alyu/logger/handler"
 )
 
 func Example() {
@@ -24,7 +26,7 @@ func Example() {
 	lg.Info("This is not written out, we need to add a handler first")
 
 	// log to console/stdout
-	lg.AddConsoleHandler()
+	lg.AddStdoutHandler()
 	lg.Info("This will be written out to stdout")
 
 	// log to file. as default the log will be rotated 5 times with a
@@ -55,8 +57,8 @@ func Example() {
 	lg.Debug("This debug message is filtered through")
 	lg.Info("As well as this info message")
 
-	lg = logger.GetWithFlags("micro", logger.Ldate|logger.Ltime|logger.Lmicroseconds)
-	lg.Info("This is written out with micrseconds precision")
+	lg = logger.GetWithFlags("micro", log.Ldate|log.Ltime|log.Lmicroseconds)
+	lg.Info("This is written out with microseconds precision")
 
 	// get the stdout logger
 	lg = logger.Stdout()
@@ -66,7 +68,7 @@ func Example() {
 
 	// add a file handler which rotates 5 files with a maximum size of 5MB starting with sequence no 1, daily midnight rotation disabled
 	// and with compress logs enabled
-	lg.AddFileHandler("/tmp/logger2.log", uint(5*logger.MB), 5, true, false)
+	lg.AddFileHandler("/tmp/logger2.log", uint(5*handler.MB), 5, true, false)
 
 	// add a file handler which keeps 5 rotated logs with no filesize limit starting with sequence no 1, daily midnight rotation
 	// and  compress logs enabled
