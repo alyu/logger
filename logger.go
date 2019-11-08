@@ -4,19 +4,20 @@
 
 // Package logger provides Logger4go which is a simple wrapper around go's log.Logger.
 //
-// It provides three log handlers ConsoleHandler|FileHandler|SyslogHandler,
-// wrapper methods named after syslog's severity levels and embedds log.Logger to provide
-// seemless access to its methods as well if needed.
+// There are four log handlers StdoutHandler, StderrHandler, FileHandler and SyslogHandler.
+// A handler writes a log event/line to a specified destination, for example a file or stdout.
+// Logger4go exposes log methods named after syslog's severity levels and also embedds 
+// log.Logger to provide seemless access to its methods as well if needed.
 //
 // Supports:
 //
-//  - Write to multiple handlers, e.g., log to console, file and syslog at the same time.
-//  - Use more than one logger instance. Each with its own set of handlers.
-//  - Log file rotation (size of daily) and compression.
-//  - Filter out severity levels.
+//  - Writing to multiple handlers, e.g., log to console, file and syslog at the same time.
+//  - Using more than one logger instance. Each with its own set of handler.
+//  - Rotate the log file based on size, per day or number of rotated files with compression.
+//  - Enable only specific severity levels to be written out.
 //
 // Example output:
-// 	main 2013/06/21 08:21:44.680513 -info- init called
+// 	main 2013/06/21 08:21:44.680513  info  init called
 // 	100m sprint 2013/06/21 08:21:44.680712  info  Started 100m sprint: Should take 10 seconds.
 // 	Long jump 2013/06/21 08:21:44.680727  info  Started Long jump: Should take 6 seconds.
 // 	High jump 2013/06/21 08:21:44.680748  info  Started High jump: Should take 3 seconds.
@@ -33,9 +34,8 @@
 // 	main 2013/06/21 08:22:14  emerge   An Emergeency message
 //
 // TODO:
-//  - Set configuration from Env variables
-// 	- Custom header format
-//	- Read settings from config file
+//  - Structured logging support. Output format should be JSON
+//  - Read settings from config file or env vars
 package logger
 
 import (
@@ -45,13 +45,15 @@ import (
 	"log/syslog"
 	"sync"
 	"strconv"
+
+	"github.com/alyu/logger/handler"
 )
 
 // Logger4go embedds go's log.Logger as an anonymous field and
 // so those methods are also exposed/accessable via Logger4go.
 type Logger4go struct {
 	name     string
-	handlers []Handler
+	handlers []handler.Handler
 	filter   SeverityFilter
 	mutex    sync.Mutex
 	*log.Logger
@@ -61,14 +63,11 @@ type Logger4go struct {
 var Logger *Logger4go
 
 func init() {
-	Logger = Get("")
 	// Use stdout handler as default
+	Logger = Get("main")
 	Logger.AddStdoutHandler()
 
-	// Create a Stdout logger
-	Get("main").AddStdoutHandler()
-
-	// Create a Stderr logger
+	// Add default stderr handler
 	Get("err").AddStderrHandler()
 }
 
@@ -159,8 +158,8 @@ func GetWithFlags(name string, flags int) *Logger4go {
 		if name == "" {
 			prefix = ""
 		}
+		lg = newLogger(&handler.NoopHandler{}, name, prefix, flags)
 		// create with a noop writer/handler
-		lg = newLogger(&NoopHandler{}, name, prefix, flags)
 		lg.filter = AllSeverity
 		mu.Lock()
 		defer mu.Unlock()
@@ -170,16 +169,16 @@ func GetWithFlags(name string, flags int) *Logger4go {
 }
 
 // AddStdoutHandler adds a logger that writes to stdout/console
-func (l *Logger4go) AddStdoutHandler() (sh *StdoutHandler, err error) {
-	sh = &StdoutHandler{}
+func (l *Logger4go) AddStdoutHandler() (sh *handler.StdoutHandler, err error) {
+	sh = &handler.StdoutHandler{}
 	registerHandler(l, sh)
 
 	return sh, nil
 }
 
 // AddStderrHandler adds a logger that writes to stderr/console
-func (l *Logger4go) AddStderrHandler() (sh *StderrHandler, err error) {
-	sh = &StderrHandler{}
+func (l *Logger4go) AddStderrHandler() (sh *handler.StderrHandler, err error) {
+	sh = &handler.StderrHandler{}
 	registerHandler(l, sh)
 
 	return sh, nil
@@ -187,9 +186,9 @@ func (l *Logger4go) AddStderrHandler() (sh *StderrHandler, err error) {
 
 // AddStdFileHandler adds a file handler which rotates the log file 5 times with a maximum size of 1MB each
 // starting with sequence no 1 and with compression and daily rotation disabled
-func (l *Logger4go) AddStdFileHandler(filePath string) (fh *FileHandler, err error) {
+func (l *Logger4go) AddStdFileHandler(filePath string) (fh *handler.FileHandler, err error) {
 
-	fh, err = newStdFileHandler(filePath)
+	fh, err = handler.NewStdFileHandler(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -198,9 +197,9 @@ func (l *Logger4go) AddStdFileHandler(filePath string) (fh *FileHandler, err err
 }
 
 // AddFileHandler adds a file handler with a specified max filesize, max number of rotations, file compression and daily rotation
-func (l *Logger4go) AddFileHandler(filePath string, maxFileSize uint, maxRotation byte, isCompressFile, isDailyRotation bool) (fh *FileHandler, err error) {
+func (l *Logger4go) AddFileHandler(filePath string, maxFileSize uint, maxRotation byte, isCompressFile, isDailyRotation bool) (fh *handler.FileHandler, err error) {
 
-	fh, err = newFileHandler(filePath, maxFileSize, maxRotation, 1, isCompressFile, isDailyRotation)
+	fh, err = handler.NewFileHandler(filePath, maxFileSize, maxRotation, 1, isCompressFile, isDailyRotation)
 	if err != nil {
 		return nil, err
 	}
@@ -215,8 +214,8 @@ func (l *Logger4go) AddFileHandler(filePath string, maxFileSize uint, maxRotatio
 // AddSyslogHandler returns a SyslogHandler which can be used to directly access the SyslogHandler.out (syslog.Writer) instance
 // which can be used to write messages with a specific syslog severity and bypassing what the logger instance is set to use.
 // No default header is written when going via the syslog.Writer instance.
-func (l *Logger4go) AddSyslogHandler(protocol, ipaddr string, priority syslog.Priority, tag string) (sh *SyslogHandler, err error) {
-	sh, err = newSyslogHandler(protocol, ipaddr, priority, tag)
+func (l *Logger4go) AddSyslogHandler(protocol, ipaddr string, priority syslog.Priority, tag string) (sh *handler.SyslogHandler, err error) {
+	sh, err = handler.NewSyslogHandler(protocol, ipaddr, priority, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -226,12 +225,12 @@ func (l *Logger4go) AddSyslogHandler(protocol, ipaddr string, priority syslog.Pr
 }
 
 // AddHandler adds a custom handler which conforms to the Handler interface.
-func (l *Logger4go) AddHandler(handler Handler) {
+func (l *Logger4go) AddHandler(handler handler.Handler) {
 	registerHandler(l, handler)
 }
 
 // RemoveHandler removes the handler from the logger.
-func (l *Logger4go) RemoveHandler(handler Handler) {
+func (l *Logger4go) RemoveHandler(handler handler.Handler) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
@@ -244,7 +243,7 @@ func (l *Logger4go) RemoveHandler(handler Handler) {
 }
 
 // Handlers returns a list of registered handlers
-func (l *Logger4go) Handlers() []Handler {
+func (l *Logger4go) Handlers() []handler.Handler {
 	return l.handlers
 }
 
@@ -485,7 +484,7 @@ func newLogger(out io.Writer, name string, prefix string, flags int) *Logger4go 
 	return &Logger4go{name: name, Logger: log.New(out, prefix, flags)}
 }
 
-func registerHandler(l *Logger4go, handler Handler) {
+func registerHandler(l *Logger4go, handler handler.Handler) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 

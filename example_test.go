@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/syslog"
 	"github.com/alyu/logger"
+	"github.com/alyu/logger/handler"
 )
 
 func Example() {
@@ -57,7 +58,7 @@ func Example() {
 	lg.Info("As well as this info message")
 
 	lg = logger.GetWithFlags("micro", log.Ldate|log.Ltime|log.Lmicroseconds)
-	lg.Info("This is written out with micrseconds precision")
+	lg.Info("This is written out with microseconds precision")
 
 	// get the stdout logger
 	lg = logger.Stdout()
@@ -67,7 +68,7 @@ func Example() {
 
 	// add a file handler which rotates 5 files with a maximum size of 5MB starting with sequence no 1, daily midnight rotation disabled
 	// and with compress logs enabled
-	lg.AddFileHandler("/tmp/logger2.log", uint(5*logger.MB), 5, true, false)
+	lg.AddFileHandler("/tmp/logger2.log", uint(5*handler.MB), 5, true, false)
 
 	// add a file handler which keeps 5 rotated logs with no filesize limit starting with sequence no 1, daily midnight rotation
 	// and  compress logs enabled

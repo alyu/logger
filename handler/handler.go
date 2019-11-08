@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can
 // be found in the LICENSE file.
 
-package logger
+package handler
 
 import (
 	"errors"
@@ -78,7 +78,7 @@ func (ch *StdoutHandler) Close() error {
 
 // String returns the handler name.
 func (ch *StdoutHandler) String() string {
-	return "ConsoleHandler"
+	return "StdoutHandler"
 }
 
 // Write a log message.

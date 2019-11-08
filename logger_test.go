@@ -11,7 +11,13 @@ import (
 var lg *Logger4go
 
 func TestDefaultLogger(t *testing.T) {
-	Logger.Infof("%v is the default logger", "Logger")
+	Logger.Emergf("The severity is %v", "emerge")
+	Logger.Alertf("The severity is %v", "alert")
+	Logger.Critf("The severity is %v", "crit")
+	Logger.Errf("The severity is %v", "err")
+	Logger.Warningf("The severity is %v", "warning")
+	Logger.Noticef("The severity is %v", "notice")
+	Logger.Infof("The severity is %v", "info")
 	Logger.Debugf("%+v", Logger)
 }
 
@@ -39,15 +45,6 @@ func TestFileHandler(t *testing.T) {
 	lg.Alert("This log event should be on the console/stdout and log file")
 }
 
-// func TestFileHandlerWithLogration(t *testing.T) {
-// 	// add a file handler which rotates 5 files with a maximum size of 5KB starting with sequence no 1,
-// 	// daily midnight rotation disabled and with compress logs enabled
-// 	_, err := lg.AddFileHandler("/tmp/logger2.log", uint(5*KB), 5, true, false)
-// 	if err != nil {
-// 		t.Logf("Unable to add file handler: %v", err)
-// 	}
-// }
-
 func TestFileHandlerWithErr(t *testing.T) {
 	_, err := lg.AddStdFileHandler("/abc/logger.log")
 	if err != nil {
@@ -67,35 +64,33 @@ func TestSyslogHandler(t *testing.T) {
 	}
 }
 
+func TestStructureLog(t * testing.T) {
+	st := struct {
+		A string
+		B int
+		C uint16
+	}{
+		"A string",
+		10,
+		100,
+	}
+
+	lg.Infof("Test structure: %+v", st)
+}
+
+func TestRegularLog(t *testing.T) {
+	lg.Println("This is the regular log line")
+}
+
 func TestFilter(t *testing.T) {
 	lg.Debug("Setting filter to Info|Crit")
 	lg.SetFilter(InfoSeverity | CritSeverity)
 	lg.Emerg("This should not be written out")
+	lg.Alert("This should not be written out")
 
 	startThreads()
 	time.Sleep(10e3* time.Millisecond)
 }
-
-// func TestLogRotate(t *testing.T) {
-// 	lg.Info("Setting filter to include all levels")
-// 	lg.SetFilter(AllSeverity)
-
-// 	for i := 0; i < 10e3; i++ {
-// 		lg.Debug("A debug message")
-// 		lg.Info("An info message")
-// 		lg.Notice("A notice message")
-// 		lg.Warn("A warning message")
-// 		lg.Err("An error messagessage")
-// 		lg.Crit("A critical message")
-// 		lg.Alert("An alert message")
-// 		lg.Emerg("An emergency message")
-
-// 		lg.Debugf("A %s debug message", "formattated")
-// 		lg.Infof("An %s info message", "formatted")
-// 		lg.Noticef("A %s notice message", "formatted")
-// 		time.Sleep(5e3 * time.Millisecond)
-// 	}
-// }
 
 func simulateEvent(name string, timeInSecs int64) {
 	// sleep for a while to simulate time consumed by event
